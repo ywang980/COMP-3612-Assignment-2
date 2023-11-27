@@ -1,4 +1,5 @@
-[{
+const artistsJSON = `[
+	{
 		"id": 1,
 		"name": "2 Chainz",
 		"type": "Solo"
@@ -848,4 +849,4 @@
 		"name": "ZAYN",
 		"type": "Solo"
 	}
-]
+]`;

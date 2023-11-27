@@ -5,14 +5,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Document</title>
     <link rel="stylesheet" href="./css/styles.css">
-    <script src="./javascript/script.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="./JSON/artists.js"></script>
+    <script src="./JSON/genres.js"></script>
     <script src="./javascript/data.js"></script>
+    <script src="./javascript/script.js"></script>
 </head>
 
 <body class="grid">
     <header class="flex relative">
-        <h1 class="pointer">Logo</h1>
-        <div id="credits" class="popup overlay hidden">
+        <!-- <h1 class="pointer">Logo</h1> -->
+        <img src="./images/logo.jpg" class="pointer">
+        <div id="credits" class="grid popup overlay hidden">
             <p>By: Andy Wang</p>
             <a href="https://www.google.com">GitHub</a>
         </div>
@@ -22,6 +26,7 @@
             <button type="button" id="creditsButton">Credits</button>
         </nav>
     </header>
+
     <main id="homeView" class="grid">
         <section class="grid">
             <h2>Top Genres</h2>
@@ -146,8 +151,11 @@
                 </li>
             </ul>
         </section>
-        <section class="grid">
+        <section id="analytics" class="grid">
             <h2>Analytics</h2>
+            <div>
+                <canvas id="analyticsChart"></canvas>
+            </div>
         </section>
     </main>
     <main id="playlistView" class="grid hidden">
@@ -201,7 +209,7 @@
         </div>
     </main>
     <footer>
-        <h2>Footer</h2>
+        <h2>Some Footer...</h2>
     </footer>
 </body>
 

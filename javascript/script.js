@@ -1,20 +1,22 @@
 document.addEventListener("DOMContentLoaded", () => {
 
-    let songs = fetchJSON(url, "songs");
-    songs = filterDuplicates(songs, "title");
-    let filteredSongs = songs;
-    
-    const artists = fetchJSON("./JSON/artists.json", "artists");
-    const genres = fetchJSON("./JSON/genres.json", "genres");
+    let songs, filteredSongs;
+    const artists = JSON.parse(artistsJSON);
+    const genres = JSON.parse(genresJSON);
+    fetchJSON(url, "songs", runUponFetch);
 
-    populateHomeView(songs, artists, genres);
-    populateSearchView();
-    turnOnEvents();
+    Chart.defaults.font.size = 16;
+    const chart = new Chart(document.querySelector("#analyticsChart"), chartConfig);
 
-    function fetchJSON(path, key) {
+    /*
+        Attempt to retrieve JSON associated with key, fetching/storing
+        from path if not found. Either way, run handler function once JSON
+        acquired.
+    */
+    function fetchJSON(path, key, handler) {
         let data = retrieveJSON(key);
         if (data) {
-            return data;
+            handler(data);
         }
         else {
             fetch(path)
@@ -22,9 +24,9 @@ document.addEventListener("DOMContentLoaded", () => {
                 .then(d => {
                     data = d;
                     storeJSON(key, d);
-                    return data;
+                    handler(data);
                 })
-                .catch();
+                .catch("Error: failed to fetch JSON.");
         }
 
         function storeJSON(key, json) {
@@ -36,6 +38,20 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
+    function runUponFetch(data) {
+        songs = filterDuplicates(data, "title");
+        filteredSongs = songs;
+
+        populateHomeView(songs, artists, genres);
+        populateSearchView();
+        turnOnEvents();
+    }
+
+    /*
+        For the supplied object, attempt to get the parameter specified
+        in the path argument.
+            -Path is a string delimited by '.'
+    */
     function getParameter(object, path) {
         const keys = path.split(".");
         let reducedObject = object;
@@ -43,6 +59,12 @@ document.addEventListener("DOMContentLoaded", () => {
         return reducedObject;
     }
 
+    /*
+        Sort an array of objects by the parameter specified via path.
+            -Order argument is -1 for descending sort,
+            anything else for ascending
+            -Case insensitive for any non-number parameter
+    */
     function sortByParameter(list, path, order) {
         list = list.sort((a, b) => {
             let parameterA = getParameter(a, path);
@@ -66,6 +88,17 @@ document.addEventListener("DOMContentLoaded", () => {
         return list;
     }
 
+    /*
+        Creates a duplicate-free copy of an array of objects.
+            -Duplicate is defined as 2 objects having the same parameter
+            specified via path
+
+        Details:
+            -The original list is sorted and iterated through
+            -The duplicate free array is initially empty, but pushed
+            whenever an object's parameter does not match that of the
+            previous object
+    */
     function filterDuplicates(list, path) {
         sortByParameter(list, path, sortOrder);
         const duplicateFreeList = [];
@@ -80,6 +113,10 @@ document.addEventListener("DOMContentLoaded", () => {
         return duplicateFreeList;
     }
 
+    /*
+        Create an HTML element with the specified text, classList (array),
+        textContent, and append it to parent.
+    */
     function createElement(parent, type, classList, textContent) {
         const element = document.createElement(type);
         classList.forEach(c => element.classList.add(c));
@@ -88,6 +125,11 @@ document.addEventListener("DOMContentLoaded", () => {
         return element;
     }
 
+    /*
+        Switch to the view indicated by the argument.
+        Possible view values: "home", "search", "single", "playlist" -
+        See: views array in data.js
+    */
     function toggleView(view) {
         const views = document.querySelectorAll("main");
         views.forEach(viewNode => viewNode.id.includes(view) ?
@@ -117,6 +159,17 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
+    /*
+        Find the top 15 songs, artists, and genres, then populate the corresponding
+        home view list.
+
+        Details:
+            -Each object array is first sorted by the desired criteria - 
+            popularity for songs, frequency of occurrence in songs
+            for artists/genres
+            -Each home list is then populated using a truncated
+            version (via the slice method) of the corresponding array
+    */
     function populateHomeView(songs, artists, genres) {
         sortByParameter(songs, "details.popularity", -1).slice(0, 15);
         populateHomeList(songs.slice(0, 15), document.querySelector("#mostPopularSongs"),
@@ -130,8 +183,27 @@ document.addEventListener("DOMContentLoaded", () => {
         populateHomeList(genres.slice(0, 15), document.querySelector("#topGenres"),
             "name", "Songs", "frequency");
 
+        /*
+            For a list of possible match values (listToMatch), sort it by
+            how often each value occurs in listToCount. Matching is on basis
+            of parameter specified via matchPath and countPath.
+
+            Details:
+                -Each list is first sorted based on the parameter at path
+                -listToCount is then iterated, comparing each value
+                to the current value to match
+
+                Case 1: values match
+                    -The current match value's frequency is incremented
+
+                Case 2: values do not match
+                    -Traverese listToMatch until values match
+        */
         function sortByFrequency(listToMatch, matchPath, listToCount, countPath) {
+
+            //First declare a frequency field for each possible match
             listToMatch.forEach(i => i.frequency = 0);
+
             sortByParameter(listToMatch, matchPath);
             sortByParameter(listToCount, countPath);
 
@@ -140,16 +212,26 @@ document.addEventListener("DOMContentLoaded", () => {
                 let matchParameter = getParameter(listToMatch[matchIndex], matchPath);
                 let countParameter = getParameter(i, countPath);
 
+                //Find a match
                 while (matchParameter != countParameter) {
                     matchIndex++;
                     matchParameter = getParameter(listToMatch[matchIndex], matchPath);
                 }
+                //Then increment frequency
                 listToMatch[matchIndex].frequency++;
             });
 
+            //Sort in descending frequency order
             sortByParameter(listToMatch, "frequency", -1);
         }
 
+        /*
+            Populate each home list element with the following markup format:
+            <div>
+                <span>Song Title/Artist/Genre (e.g. dance pop)</span>
+                <span>Metric (e.g. Popularity: 121)</span>
+            </div>
+        */
         function populateHomeList(sortedList, parent, path, metric, metricPath) {
             sortedList.forEach(i => {
                 const container = createElement(parent, "div", ["dataRow", "flex"], "");
@@ -161,6 +243,9 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
+    /*
+        Populate the artist and genre search select menus, sorted in ascending order.
+    */
     function populateSearchView() {
         sortByParameter(artists, "name", sortOrder);
         populateSelect(document.querySelector("#artistSearch"), artists, "name");
@@ -170,7 +255,22 @@ document.addEventListener("DOMContentLoaded", () => {
         updateSearchResults("title", "")
     }
 
+    /*
+            Populate each song list element with the following markup format:
+            <div class="songRow">
+                <span data-id="song.song_id">Title</span>
+                <span>Artist</span>
+                <span>Year</span>
+                <span>Genre</span>
+                <span>Popularity</span>
+            </div>
+
+            -If title is 25 or more characters, truncate it to an ellipse
+            which may be clicked on to temporarily view the full title via
+            a hidden overlay
+    */
     function populateSongList(parent, header, songs) {
+        //Backup header row before clearing child nodes
         const headerBackup = header;
         parent.replaceChildren();
         parent.appendChild(headerBackup);
@@ -197,8 +297,16 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
+    /*
+        Filter songs whose specified parameter matches the supplied
+        searchText, then repopulates the searchResults section
+        with the filtered songs. Filtered songs are sorted according
+        to the current sort criteria/order, determined by last clicked
+        sort icon in header.
+    */
     function updateSearchResults(parameter, searchText) {
-        if (searchText != "")
+        //Only filter on new searchText (i.e. not empty)
+        if (searchText)
             filteredSongs = getFilteredSongs(parameter, searchText);
         sortByParameter(filteredSongs, sortCriteria, sortOrder);
 
@@ -211,15 +319,134 @@ document.addEventListener("DOMContentLoaded", () => {
 
             filteredResult = (songs.filter(song => {
                 value = getParameter(song, parameter);
+
+                //Case insensitive search
                 if (isNaN(value))
                     value = value.toLowerCase();
-                return (value.toString()).includes(searchText);
+
+                //Allow partial matching for title search
+                if (parameter == "title")
+                    return (value.toString()).includes(searchText);
+                else
+                    return value == searchText;
             }
             ));
             return filteredResult;
         }
     }
 
+    /*
+        Update single song view with the data of the clicked song.
+
+        Details: song information is clustered into 3 categories - basic, details,
+        and analytics
+
+        Basic: title, artist name, artist type, genre, year
+            -Output format is text field
+        
+        Details: duration, BPM, popularity, loudness
+            -Output format is a progress bar; a comparison against a
+            predefined maximum
+            -Maximum for each detail field is: 300 seconds, 180 BPM,
+            100% popularity, and 120 dB, respectively
+        
+        Analytics: all analytics fields range from 1-100, and are represented
+        via a radar chart
+    */
+    function updateSingleSongView(song) {
+        toggleView(views[2]);
+        populateBasicInformation(song);
+        populateDetails(song.details);
+        updateChartData(song.analytics);
+
+        /*
+            Fill each text field with the corresponding song field. For artist.type,
+            first find the artist object with the same name as the artist.name of the
+            song, then create an artist.type field in the song.
+        */
+        function populateBasicInformation(song) {
+            const artist = artists.find(a => a.name == song.artist.name);
+            song.artist.type = artist.type;
+
+            const dataNodeList = document.querySelectorAll(".dataRow span[data-type]");
+            dataNodeList.forEach(dataNode => {
+                dataNode.textContent = getParameter(song, dataNode.getAttribute("data-type"));
+            });
+        }
+
+        /*
+            For each details field in the song, fill and label a progress bar
+            to represent the field.
+        */
+        function populateDetails(songDetails) {
+            const detailsList = document.querySelectorAll("#details li");
+            detailsList.forEach(li => {
+                const type = li.getAttribute("data-type");
+                const detailSpecification = detailsSpecifications.find(d => d.type == type)
+                const value = Math.abs(getParameter(songDetails, type));
+
+                fillProgressBar(detailSpecification, value, type);
+                generateLabelText(detailSpecification, value, type);
+
+                /*
+                    Progress bar filled via setting width of progress bar as
+                    progress %
+                        -Progress % = field value/max value
+                        -Implemented via styling parent container
+                     with different background color
+                */
+                function fillProgressBar(detailSpecification, value, type) {
+                    let widthPercent = (value / detailSpecification.limit * 100).toFixed(2);
+                    if (widthPercent > 100)
+                        widthPercent = 100;
+                    const progressBar = document.querySelector(`li[data-type="${type}"] .progressBar`);
+                    progressBar.style.width = `${widthPercent}%`;
+                }
+
+                /*
+                    Progress bar label depends on type of field; each field
+                    has a distinct unit listed in its detailSpecification object
+                        -Time converted to minutes + seconds format
+                        -Loudness converted to practical dB values
+                */
+                function generateLabelText(detailSpecification, value, type) {
+                    const label = document.querySelector(`li[data-type="${type}"] label`);
+                    let labelText = `${type.toUpperCase()}: `;
+
+                    if (type == "loudness")
+                        value *= 10;
+
+                    if (type == "duration")
+                        labelText += getDurationInMinutes(value);
+                    else
+                        labelText += `${value} ${detailSpecification.unit}`;
+                    label.textContent = labelText;
+                }
+
+                function getDurationInMinutes(seconds) {
+                    return `${(seconds / 60).toFixed(0)} Minutes, ${(seconds % 60).toFixed(0)} Seconds`;
+                }
+            })
+        }
+
+        /*
+            Replace chart data with analytics data of song
+        */
+        function updateChartData(songAnalytics) {
+            const newData = [];
+            const labels = chartData.labels;
+            labels.forEach(label => newData.push((getParameter(songAnalytics, label))));
+
+            chart.data.datasets[0].data = newData;
+            chart.update();
+        }
+    }
+
+    /*
+        Repopulates playlist, sorted according to the current sort
+        criteria/order, then updates the playlist details (i.e. 
+        song count, average popularity).
+    */
     function updatePlaylist() {
         playlist = sortByParameter(playlist, sortCriteria, sortOrder);
 
@@ -245,14 +472,16 @@ document.addEventListener("DOMContentLoaded", () => {
         addEventEnableNav();
         addEventClearSearch();
         addEventFilterSearch();
-        addEventHomeViewLinks();
-        addEventViewSongFromSearch();
-
+        addEventViewLinks();
         addEventSortOrderToggle();
         addEventExpandEllipse();
         addPlaylistEvents();
     }
 
+    /*
+        View-swapping functionality in header (i.e. logo/button click)
+        and credits mouseover.
+    */
     function addEventEnableNav() {
         const buttons = document.querySelectorAll("nav.buttonContainer button");
         buttons.forEach(button => {
@@ -262,7 +491,7 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         });
 
-        document.querySelector("header h1").addEventListener("click",
+        document.querySelector("header img").addEventListener("click",
             () => toggleView(views[0]));
 
         document.querySelector("#creditsButton").addEventListener("mouseover", () => {
@@ -270,12 +499,15 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
+    /*
+        Enable button to clear search choice and value.
+    */
     function addEventClearSearch() {
         document.querySelector("#clearSearchButton").addEventListener("click", () => {
             clearSearchChoice();
             emptySearchValues();
-            filteredSongs = songs;
-            updateSearchResults("title", "");
+            filteredSongs = songs; //Reset filtered songs
+            updateSearchResults("title", ""); //Repopulate search results with all songs
 
             function clearSearchChoice() {
                 const choices = document.querySelectorAll("#songSearch input[type=radio]");
@@ -292,97 +524,74 @@ document.addEventListener("DOMContentLoaded", () => {
         })
     }
 
+    /*
+        Enable button to filter search results based on value of selected search type.
+        Can also search with enter key while in search view.
+    */
     function addEventFilterSearch() {
-        document.querySelector("#filterSearchButton").addEventListener("click", () => {
+        document.querySelector("#filterSearchButton").addEventListener("click", filterSearch);
+
+        document.addEventListener("keypress", (e) => {
+            const searchView = document.querySelector("#searchView");
+            if (e.key == "Enter" && !searchView.classList.contains("hidden"))
+                filterSearch();
+        })
+
+        function filterSearch() {
+            //Find search type (i.e. the checked radio)
             const choices = document.querySelectorAll("#songSearch input[type=radio]");
             const filterChoice = Array.from(choices).find((choice) => choice.checked);
 
             if (!filterChoice)
                 alert("Select a search choice");
             else {
+                //Use parameter data in checked radio to determine which
+                //input's value to use as the search text
                 const parameter = filterChoice.getAttribute("data-parameter");
                 const searchText = getSearchText(parameter);
+
+                //Don't update results if search text is empty
                 searchText ? updateSearchResults(parameter, searchText) : alert("Invalid search input");
             }
-        });
 
-        function getSearchText(parameter) {
-            if (parameter == "title")
-                return document.querySelector(`[data-parameter="${parameter}"]~input`).value;
-            else if (parameter == "artist.name" || parameter == "genre.name")
-                return document.querySelector(`[data-parameter="${parameter}"]~select`).value;
-            return "";
+            function getSearchText(parameter) {
+                if (parameter == "title")
+                    return document.querySelector(`[data-parameter="${parameter}"]~input`).value;
+                else if (parameter == "artist.name" || parameter == "genre.name")
+                    return document.querySelector(`[data-parameter="${parameter}"]~select`).value;
+                return "";
+            }
         }
     }
 
-    function updateSingleSongView(song) {
-        toggleView(views[2]);
-        populateBasicInformation(song);
-        populateDetails(song.details);
+    /*
+        Clicking on a song title anywhere (i.e. home, search, playlist)
+        will display that song in single song view. Clicking on a genre/artist
+        in the home view will search by that genre/artist.
 
-        function populateBasicInformation(song){
-            const artist = artists.find(a => a.name == song.artist.name);
-            song.artist.type = artist.type;
-
-            const dataNodeList = document.querySelectorAll(".dataRow span[data-type]");
-            dataNodeList.forEach(dataNode =>{
-                dataNode.textContent = getParameter(song, dataNode.getAttribute("data-type"));
-            });
-        }
-
-        function populateDetails(songDetails) {
-            const detailsList = document.querySelectorAll("#details li");
-            detailsList.forEach(li => {
-                const type = li.getAttribute("data-type");
-                const detailSpecification = detailsSpecifications.find(d => d.type == type)
-                const value = Math.abs(getParameter(songDetails, type));
-
-                fillProgressBar(detailSpecification, value, type);
-                generateLabelText(detailSpecification, value, type);
-
-                function fillProgressBar(detailSpecification, value, type) {
-                    let widthPercent = (value / detailSpecification.limit * 100).toFixed(2);
-                    if (widthPercent > 100)
-                        widthPercent = 100;
-                    const progressBar = document.querySelector(`li[data-type="${type}"] .progressBar`);
-                    progressBar.style.width = `${widthPercent}%`;
-                }
-
-                function generateLabelText(detailSpecification, value, type) {
-                    const label = document.querySelector(`li[data-type="${type}"] label`);
-                    let labelText = `${type.toUpperCase()}: `;
-
-                    if (type == "loudness")
-                        value *= 10;
-
-                    if (type == "duration")
-                        labelText += getDurationInMinutes(value);
-                    else
-                        labelText += `${value} ${detailSpecification.unit}`;
-                    label.textContent = labelText;
-                }
-
-                function getDurationInMinutes(seconds) {
-                    return `${(seconds / 60).toFixed(0)} Minutes and ${(seconds % 60).toFixed(0)} Seconds`;
-                }
-            })
-        }
-    }
-
-    function addEventHomeViewLinks() {
-        document.querySelector("#homeView").addEventListener("click", e => {
+        Details:
+            -All such clickable nodes are assigned the underline class
+            -Type of field determined via ID of encompassing ancestor container
+            2 levels up
+    */
+    function addEventViewLinks() {
+        document.querySelector("body").addEventListener("click", e => {
             if (e.target && e.target.classList.contains("underline")) {
-                const listAncestor = (e.target.parentNode).parentNode;
-                listID = listAncestor.id.toLowerCase();
 
-                if (listID.includes("genres")) {
+                //Determine field type
+                const ancestor = (e.target.parentNode).parentNode;
+                const ancestorID = ancestor.id.toLowerCase();
+
+                //Search by genre/artist
+                if (ancestorID.includes("genres")) {
                     updateSearchResults("genre.name", e.target.textContent);
                     toggleView(views[1]);
                 }
-                else if (listID.includes("artists")) {
+                else if (ancestorID.includes("artists")) {
                     updateSearchResults("artist.name", e.target.textContent);
                     toggleView(views[1]);
                 }
+                //Display clicked song
                 else {
                     const clickedSong = songs.find(song => song.title == e.target.textContent);
                     updateSingleSongView(clickedSong);
@@ -391,35 +600,31 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    function addEventViewSongFromSearch() {
-        document.querySelector("#searchResults").addEventListener("click", e => {
-            if (e.target && e.target.classList.contains("underline")) {
-                const resultField = e.target;
-                if (resultField.parentNode.classList.contains("underline"))
-                    resultField = resultField.parentNode;
+    /*
+        Clicking on any order toggle icon in the search results/playlist header
+        will sort the current search results AND playlist based on the icon's
+        type/direction.
 
-                const clickedSong = songs.find(song => song.song_id ==
-                    resultField.getAttribute("data-id"));
-
-                updateSingleSongView(clickedSong)
-            };
-        });
-    }
-
+        Details:
+            -The type is embedded as data within the icon img
+            -The direction is defined by the img src - an up or down caret
+            to reflect the current sort direction
+    */
     function addEventSortOrderToggle() {
         document.querySelector("body").addEventListener("click", (e) => {
-            if (e.target && e.target.nodeName == "IMG"
-                && e.target.classList.contains("orderToggle")) {
+            if (e.target && e.target.classList.contains("orderToggle")) {
                 const sortType = e.target.getAttribute("data-type");
-                const imgList = document.querySelectorAll(`img.orderToggle[data-type="${sortType}"]`);
-                toggleSortDirection(sortType, imgList);
+                toggleSortDirection(sortType, e.target);
 
-                function toggleSortDirection(sortType, imgList) {
-                    let iconSrc = "./images/caret-up-solid.svg"
-                    imgList.forEach(img => img.src.includes("up") ?
-                        img.src = iconSrc.replace("up", "down") : img.src = iconSrc);
+                function toggleSortDirection(sortType, img) {
+                    //src names only differ in up or down
+                    //src of "up" caret indicates ascending sort, down-descending
+                    let iconSrc = "./images/caret-up-solid.svg";
+                    if (img.src.includes("up"))
+                        iconSrc = iconSrc.replace("up", "down");
+                    img.src = iconSrc;
 
-                    updateSortLogic(sortType, getSortOrder(imgList[0]));
+                    updateSortLogic(sortType, getSortOrder(img));
                     updateSearchResults(sortCriteria, "");
                     updatePlaylist();
                 }
@@ -438,8 +643,12 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
+    /*
+        Clicking on an ellipse (representing a truncated song title) will
+        temporarily display a tooltip with the full song title.
+    */
     function addEventExpandEllipse() {
-        document.querySelector("#searchResults").addEventListener("click", (e) => {
+        document.querySelector("body").addEventListener("click", (e) => {
             if (e.target && e.target.textContent == ellipse) {
                 const parent = e.target.parentNode;
                 const tooltip = e.target.nextElementSibling;
@@ -448,28 +657,52 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
+    /*
+        Various playlist functionalities:
+
+        -A button to add a song to the playlist in search view, a button to
+        remove a song from the playlist in playlist view
+        -Either button will open a "menu" popup, which itself has 2 buttons:
+        confirm add/remove, or close menu
+        -User may choose any song currently visibile in search results/playlist
+        to add/remove, respectively
+        -Each successful add/remove will display a short notification toast
+        -Duplicates may not be added
+
+        -A button to clear the playlist
+    */
     function addPlaylistEvents() {
         enableOpenMenuButtons();
         enableCloseMenuButtons();
         enableModifyMenuButtons();
         enableClearPlaylist();
 
+        /*
+            Open menu to add/remove song via toggling menu class, then populate
+            menu select with (valid) songs which may be added/removed.
+        */
         function enableOpenMenuButtons() {
             const openButtons = document.querySelectorAll("div.openMenu button");
             openButtons.forEach(openButton => {
                 openButton.addEventListener("click", () => {
+                    //select to populate/selectData are determined by target attribute in button
                     const target = openButton.getAttribute("data-target");
                     toggleMenuDisplay(target, "show");
 
                     const select = document.querySelector(`#${target} select`);
                     select.replaceChildren();
                     let selectData;
-                    target == "addSongMenu" ? selectData = filteredSongs : selectData = playlist;
+                    target == "addSongMenu" ?
+                        selectData = filteredSongs.filter(song => !playlist.includes(song)) :
+                        selectData = playlist;
                     populateSelect(select, selectData, "title")
                 });
             });
         }
 
+        /*
+            Buttons to close the popup menu.
+        */
         function enableCloseMenuButtons() {
             const closeButtons = document.querySelectorAll(".cancelPlaylistChange");
             closeButtons.forEach(closeButton => {
@@ -478,6 +711,14 @@ document.addEventListener("DOMContentLoaded", () => {
             });
         }
 
+        /*
+            Add or remove the selected song to/from the playlist.
+            
+            Details:
+                -Determine type of operation(add/remove) to push/pop playlist
+                -Update playlist data, repopulate HTML
+                -Update list of songs which can be added/removed
+        */
         function enableModifyMenuButtons() {
             const modifyButtons = document.querySelectorAll(".confirmPlaylistChange");
             modifyButtons.forEach(modifyButton => {
@@ -499,14 +740,16 @@ document.addEventListener("DOMContentLoaded", () => {
             function pushPlaylist(value) {
                 if (value) {
                     const selectedSong = filteredSongs.find(song => song.title == value);
-                    playlist.push(selectedSong);
-                    updatePlaylist();
-                    createTemporaryPopup("Song Added to Playlist!", 1500);
+                    if (!playlist.includes(selectedSong)) {
+                        playlist.push(selectedSong);
+                        updatePlaylist();
+                        createTemporaryPopup("Song Added to Playlist!", 1500);
+                    }
                 }
             }
 
             function popPlaylist(value) {
-                if(value){
+                if (value) {
                     const selectedSong = playlist.find(song => song.title == value);
                     playlist = playlist.filter(song => song != selectedSong);
                     updatePlaylist();
@@ -515,6 +758,9 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         }
 
+        /*
+            Button to clear playlist.
+        */
         function enableClearPlaylist() {
             document.querySelector("#clearPlaylist button").addEventListener("click", () => {
                 playlist = [];
@@ -522,6 +768,9 @@ document.addEventListener("DOMContentLoaded", () => {
             });
         }
 
+        /*
+            Show or hide a target popup.
+        */
         function toggleMenuDisplay(target, showOrHide) {
             const parent = document.querySelector(`#${target}`);
             if (showOrHide == "show")

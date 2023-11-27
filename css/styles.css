@@ -69,7 +69,10 @@ footer {
 
 header>* {
     height: 100%;
-    flex: 0 0 50%;
+}
+
+header > nav{
+    width: 50%;
 }
 
 header h1 {
@@ -234,6 +237,17 @@ div.songMenu {
     background-color: lightblue;
 }
 
+#analytics{
+    grid-template: 5% 1fr/1fr;
+    /* height: 95%; */
+}
+
+#analytics div{
+    height: 95%;
+    display: flex;
+    justify-content: center;
+}
+
 #playlistView {
     grid-template: 15% 1fr/1fr;
 }
@@ -298,13 +312,18 @@ button,
 .overlay {
     position: absolute;
     background-color: rgb(250, 112, 112);
+
+    grid-template-rows: 1fr 1fr;
     left: 91.5%;
     top: 60%;
     width: 8%;
-    height: 70%;
-    padding: 1.25%;
+    height: 100%;
+    padding: 1%;
 
     color: white;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 16px;
+    font-weight: 500;
 }
 
 .hidden {

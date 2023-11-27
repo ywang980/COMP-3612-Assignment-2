@@ -1,4 +1,4 @@
-[{
+const genresJSON = `[{
 		"id": 101,
 		"name": "afroswing"
 	},
@@ -90,4 +90,4 @@
 		"id": 121,
 		"name": "r&b"
 	}
-]
+]`;
