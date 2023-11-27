@@ -1,0 +1,208 @@
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <link rel="stylesheet" href="./css/styles.css">
+    <script src="./javascript/script.js"></script>
+    <script src="./javascript/data.js"></script>
+</head>
+
+<body class="grid">
+    <header class="flex relative">
+        <h1 class="pointer">Logo</h1>
+        <div id="credits" class="popup overlay hidden">
+            <p>By: Andy Wang</p>
+            <a href="https://www.google.com">GitHub</a>
+        </div>
+        <nav class="buttonContainer">
+            <button type="button">Search</button>
+            <button type="button">Playlist</button>
+            <button type="button" id="creditsButton">Credits</button>
+        </nav>
+    </header>
+    <main id="homeView" class="grid">
+        <section class="grid">
+            <h2>Top Genres</h2>
+            <ul id="topGenres" class="grid">
+            </ul>
+        </section>
+        <section class="grid">
+            <h2>Top Artists</h2>
+            <ul id="topArtists" class="grid"></ul>
+        </section>
+        <section class="grid">
+            <h2>Most Popular Songs</h2>
+            <ul id="mostPopularSongs" class="grid"></ul>
+        </section>
+    </main>
+    <main id="searchView" class="grid hidden">
+        <aside class="grid">
+            <h2>Basic Song Search</h2>
+            <div id="songSearch" class="grid">
+                <input type="radio" name="searchChoice" data-parameter="title">
+                <label>Title</label>
+                <input type="text" id="titleSearch">
+
+                <input type="radio" name="searchChoice" data-parameter="artist.name">
+                <label>Artist</label>
+                <select id="artistSearch">
+                    <option></option>
+                </select>
+
+                <input type="radio" name="searchChoice" data-parameter="genre.name">
+                <label>Genre</label>
+                <select id="genreSearch">
+                    <option></option>
+                </select>
+            </div>
+            <div class="buttonContainer">
+                <button type="button" id="clearSearchButton">Clear</button>
+                <button type="button" id="filterSearchButton">Filter</button>
+            </div>
+        </aside>
+        <section class="grid">
+            <h2>Browse/Search Results</h2>
+            <div class="absolute buttonContainer playlistMenu openMenu">
+                <button type="button" data-target="addSongMenu">Add Song</button>
+            </div>
+            <div id="addSongMenu" class="grid absolute popup hidden songMenu">
+                <label>Select Song:</label>
+                <select>
+                </select>
+                <div class="buttonContainer">
+                    <button type="button" class="confirmPlaylistChange" data-target="addSongMenu">Confirm</button>
+                    <button type="button" class="cancelPlaylistChange" data-target="addSongMenu">Close</button>
+                </div>
+            </div>
+            <div id="searchResults" class="grid songTable">
+                <div id="resultsHeaderRow" class="grid songRow">
+                    <div class="flex songHeader">
+                        <label>Title</label>
+                        <img src="./images/caret-up-solid.svg" class="orderToggle" data-type="title">
+                    </div>
+                    <div class="flex songHeader">
+                        <label>Artist</label>
+                        <img src="./images/caret-up-solid.svg" class="orderToggle" data-type="artist.name">
+                    </div>
+                    <div class="flex songHeader">
+                        <label>Year</label>
+                        <img src="./images/caret-up-solid.svg" class="orderToggle" data-type="year">
+                    </div>
+                    <div class="flex songHeader">
+                        <label>Genre</label>
+                        <img src="./images/caret-up-solid.svg" class="orderToggle" data-type="genre.name">
+                    </div>
+                    <div class="flex songHeader">
+                        <label>Popularity</label>
+                        <img src="./images/caret-up-solid.svg" class="orderToggle" data-type="details.popularity">
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+    <main id="singleSongView" class="grid hidden">
+        <section id="songInformation" class="grid">
+            <h2>General Song Information</h2>
+            <div id="basicInformation" class="grid">
+                <div class="flex dataRow">
+                    <span>Title: </span>
+                    <span data-type="title"></span>
+                </div>
+                <div class="flex dataRow">
+                    <span>Artist Name: </span>
+                    <span data-type="artist.name"></span>
+                </div>
+                <div class="flex dataRow">
+                    <span>Artist Type: </span>
+                    <span data-type="artist.type"></span>
+                </div>
+                <div class="flex dataRow">
+                    <span>Genre: </span>
+                    <span data-type="genre.name"></span>
+                </div>
+                <div class="flex dataRow">
+                    <span>Year: </span>
+                    <span data-type="year"></span>
+                </div>
+            </div>
+            <ul id="details" class="grid">
+                <li data-type="duration">
+                    <label class="absolute"></label>
+                    <div class="progressBar flex"></div>
+                </li>
+                <li data-type="bpm">
+                    <label class="absolute"></label>
+                    <div class="progressBar flex"></div>
+                </li>
+                <li data-type="popularity">
+                    <label class="absolute"></label>
+                    <div class="progressBar flex"></div>
+                </li>
+                <li data-type="loudness">
+                    <label class="absolute"></label>
+                    <div class="progressBar flex"></div>
+                </li>
+            </ul>
+        </section>
+        <section class="grid">
+            <h2>Analytics</h2>
+        </section>
+    </main>
+    <main id="playlistView" class="grid hidden">
+        <div id="playlistDetails" class="grid">
+            <h2>Playlist Details</h2>
+            <div>
+                Song Count: <span id="songCount">0</span>
+            </div>
+            <div>
+                Average Song Popularity: <span id="averagePopularity">0</span>
+            </div>
+            <div class="absolute buttonContainer playlistMenu openMenu">
+                <button type="button" data-target="removeSongMenu">Remove Song</button>
+            </div>
+            <div id="clearPlaylist" class="absolute buttonContainer playlistMenu">
+                <button type="button">Clear Playlist</button>
+            </div>
+            <div id="removeSongMenu" class="grid absolute popup hidden songMenu">
+                <label>Select Song:</label>
+                <select>
+                </select>
+                <div class="buttonContainer">
+                    <button type="button" class="confirmPlaylistChange" data-target="removeSongMenu">Confirm</button>
+                    <button type="button" class="cancelPlaylistChange" data-target="removeSongMenu">Close</button>
+                </div>
+            </div>
+        </div>
+        <div id="playlist" class="grid songTable">
+            <div id="playlistHeaderRow" class="grid songRow">
+                <div class="flex songHeader">
+                    <label>Title</label>
+                    <img src="./images/caret-up-solid.svg" class="orderToggle" data-type="title">
+                </div>
+                <div class="flex songHeader">
+                    <label>Artist</label>
+                    <img src="./images/caret-up-solid.svg" class="orderToggle" data-type="artist.name">
+                </div>
+                <div class="flex songHeader">
+                    <label>Year</label>
+                    <img src="./images/caret-up-solid.svg" class="orderToggle" data-type="year">
+                </div>
+                <div class="flex songHeader">
+                    <label>Genre</label>
+                    <img src="./images/caret-up-solid.svg" class="orderToggle" data-type="genre.name">
+                </div>
+                <div class="flex songHeader">
+                    <label>Popularity</label>
+                    <img src="./images/caret-up-solid.svg" class="orderToggle" data-type="details.popularity">
+                </div>
+            </div>
+        </div>
+    </main>
+    <footer>
+        <h2>Footer</h2>
+    </footer>
+</body>
+
+</html>
