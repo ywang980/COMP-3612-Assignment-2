@@ -77,7 +77,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
             if (parameterA > parameterB)
                 return 1;
-            else if (parameterA > parameterB)
+            else if (parameterA < parameterB)
                 return -1;
             return 0;
         });
@@ -204,8 +204,8 @@ document.addEventListener("DOMContentLoaded", () => {
             //First declare a frequency field for each possible match
             listToMatch.forEach(i => i.frequency = 0);
 
-            sortByParameter(listToMatch, matchPath);
-            sortByParameter(listToCount, countPath);
+            sortByParameter(listToMatch, matchPath, 1);
+            sortByParameter(listToCount, countPath, 1);
 
             let matchIndex = 0;
             listToCount.forEach(i => {
