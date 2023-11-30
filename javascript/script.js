@@ -82,7 +82,7 @@ document.addEventListener("DOMContentLoaded", () => {
             return 0;
         });
 
-        if (order == "-1")
+        if (order == -1)
             list = list.reverse();
 
         return list;
